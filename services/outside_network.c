@@ -1001,26 +1001,25 @@ randomize_and_send_udp(struct outside_network* outnet, struct pending* pend,
 }
 
 struct pending* 
-pending_udp_query(struct outside_network* outnet, ldns_buffer* packet, 
-	struct sockaddr_storage* addr, socklen_t addrlen, int timeout,
-	comm_point_callback_t* cb, void* cb_arg)
+pending_udp_query(struct serviced_query* sq, ldns_buffer* packet,
+	int timeout, comm_point_callback_t* cb, void* cb_arg)
 {
 	struct pending* pend = (struct pending*)calloc(1, sizeof(*pend));
 	if(!pend) return NULL;
-	pend->outnet = outnet;
-	pend->addrlen = addrlen;
-	memmove(&pend->addr, addr, addrlen);
+	pend->outnet = sq->outnet;
+	pend->addrlen = sq->addrlen;
+	memmove(&pend->addr, &sq->addr, sq->addrlen);
 	pend->cb = cb;
 	pend->cb_arg = cb_arg;
 	pend->node.key = pend;
-	pend->timer = comm_timer_create(outnet->base, pending_udp_timer_cb, 
+	pend->timer = comm_timer_create(sq->outnet->base, pending_udp_timer_cb,
 		pend);
 	if(!pend->timer) {
 		free(pend);
 		return NULL;
 	}
 
-	if(outnet->unused_fds == NULL) {
+	if(sq->outnet->unused_fds == NULL) {
 		/* no unused fd, cannot create a new port (randomly) */
 		verbose(VERB_ALGO, "no fds available, udp query waiting");
 		pend->timeout = timeout;
@@ -1033,15 +1032,15 @@ pending_udp_query(struct outside_network* outnet, ldns_buffer* packet,
 			return NULL;
 		}
 		/* put at end of waiting list */
-		if(outnet->udp_wait_last)
-			outnet->udp_wait_last->next_waiting = pend;
+		if(sq->outnet->udp_wait_last)
+			sq->outnet->udp_wait_last->next_waiting = pend;
 		else 
-			outnet->udp_wait_first = pend;
-		outnet->udp_wait_last = pend;
+			sq->outnet->udp_wait_first = pend;
+		sq->outnet->udp_wait_last = pend;
 		return pend;
 	}
-	if(!randomize_and_send_udp(outnet, pend, packet, timeout)) {
-		pending_delete(outnet, pend);
+	if(!randomize_and_send_udp(sq->outnet, pend, packet, timeout)) {
+		pending_delete(sq->outnet, pend);
 		return NULL;
 	}
 	return pend;
@@ -1394,8 +1393,8 @@ serviced_udp_send(struct serviced_query* sq, ldns_buffer* buff)
 	sq->last_sent_time = *sq->outnet->now_tv;
 	sq->edns_lame_known = (int)edns_lame_known;
 	verbose(VERB_ALGO, "serviced query UDP timeout=%d msec", rtt);
-	sq->pending = pending_udp_query(sq->outnet, buff, &sq->addr, 
-		sq->addrlen, rtt, serviced_udp_callback, sq);
+	sq->pending = pending_udp_query(sq, buff, rtt,
+		serviced_udp_callback, sq);
 	if(!sq->pending)
 		return 0;
 	return 1;
