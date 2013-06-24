@@ -79,8 +79,8 @@
 static void serviced_tcp_initiate(struct outside_network* outnet, 
 	struct serviced_query* sq, ldns_buffer* buff);
 /** with a fd available, randomize and send UDP */
-static int randomize_and_send_udp(struct outside_network* outnet, 
-	struct pending* pend, ldns_buffer* packet, int timeout);
+static int randomize_and_send_udp(struct pending* pend, ldns_buffer* packet,
+	int timeout);
 
 int 
 pending_cmp(const void* key1, const void* key2)
@@ -379,7 +379,7 @@ outnet_send_wait_udp(struct outside_network* outnet)
 		free(pend->pkt); /* freeing now makes get_mem correct */
 		pend->pkt = NULL; 
 		pend->pkt_len = 0;
-		if(!randomize_and_send_udp(outnet, pend, outnet->udp_buff, 
+		if(!randomize_and_send_udp(pend, outnet->udp_buff,
 			pend->timeout)) {
 			/* callback error on pending */
 			fptr_ok(fptr_whitelist_pending_udp(pend->cb));
@@ -961,10 +961,10 @@ select_ifport(struct outside_network* outnet, struct pending* pend,
 }
 
 static int
-randomize_and_send_udp(struct outside_network* outnet, struct pending* pend,
-	ldns_buffer* packet, int timeout)
+randomize_and_send_udp(struct pending* pend, ldns_buffer* packet, int timeout)
 {
 	struct timeval tv;
+	struct outside_network* outnet = pend->sq->outnet;
 
 	/* select id */
 	if(!select_id(outnet, pend, packet)) {
@@ -1040,7 +1040,7 @@ pending_udp_query(struct serviced_query* sq, ldns_buffer* packet,
 		sq->outnet->udp_wait_last = pend;
 		return pend;
 	}
-	if(!randomize_and_send_udp(sq->outnet, pend, packet, timeout)) {
+	if(!randomize_and_send_udp(pend, packet, timeout)) {
 		pending_delete(sq->outnet, pend);
 		return NULL;
 	}
