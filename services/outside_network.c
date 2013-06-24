@@ -1007,6 +1007,7 @@ pending_udp_query(struct serviced_query* sq, ldns_buffer* packet,
 	struct pending* pend = (struct pending*)calloc(1, sizeof(*pend));
 	if(!pend) return NULL;
 	pend->outnet = sq->outnet;
+	pend->sq = sq;
 	pend->addrlen = sq->addrlen;
 	memmove(&pend->addr, &sq->addr, sq->addrlen);
 	pend->cb = cb;
