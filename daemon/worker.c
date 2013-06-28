@@ -1071,6 +1071,11 @@ int
 worker_init(struct worker* worker, struct config_file *cfg, 
 	struct listen_port* ports, int do_sigs)
 {
+#ifdef USE_DNSTAP
+	struct dt_env* dtenv = &worker->dtenv;
+#else
+	void* dtenv = NULL;
+#endif
 	worker->need_to_exit = 0;
 	worker->base = comm_base_create(do_sigs);
 	if(!worker->base) {
@@ -1119,7 +1124,8 @@ worker_init(struct worker* worker, struct config_file *cfg,
 	}
 	worker->front = listen_create(worker->base, ports,
 		cfg->msg_buffer_size, (int)cfg->incoming_num_tcp, 
-		worker->daemon->listen_sslctx, worker_handle_request, worker);
+		worker->daemon->listen_sslctx, dtenv, worker_handle_request,
+		worker);
 	if(!worker->front) {
 		log_err("could not create listening sockets");
 		worker_delete(worker);
