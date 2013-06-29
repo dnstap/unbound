@@ -45,6 +45,7 @@
 
 #include "util/rbtree.h"
 #include "util/netevent.h"
+#include "dnstap/dnstap_config.h"
 struct pending;
 struct pending_timeout;
 struct ub_randstate;
@@ -54,6 +55,7 @@ struct waiting_udp;
 struct infra_cache;
 struct port_comm;
 struct port_if;
+struct dt_env;
 
 /**
  * Send queries to outside servers and wait for answers from servers.
@@ -120,6 +122,10 @@ struct outside_network {
 	struct ub_randstate* rnd;
 	/** ssl context to create ssl wrapped TCP with DNS connections */
 	void* sslctx;
+#ifdef USE_DNSTAP
+	/** dnstap environment */
+	struct dt_env* dtenv;
+#endif
 
 	/**
 	 * Array of tcp pending used for outgoing TCP connections.
@@ -376,6 +382,7 @@ struct serviced_query {
  * @param unwanted_param: user parameter to action.
  * @param do_udp: if udp is done.
  * @param sslctx: context to create outgoing connections with (if enabled).
+ * @param dtenv: environment to send dnstap events with (if enabled).
  * @return: the new structure (with no pending answers) or NULL on error.
  */
 struct outside_network* outside_network_create(struct comm_base* base,
@@ -384,7 +391,7 @@ struct outside_network* outside_network_create(struct comm_base* base,
 	struct ub_randstate* rnd, int use_caps_for_id, int* availports, 
 	int numavailports, size_t unwanted_threshold,
 	void (*unwanted_action)(void*), void* unwanted_param, int do_udp,
-	void* sslctx);
+	void* sslctx, struct dt_env *dtenv);
 
 /**
  * Delete outside_network structure.

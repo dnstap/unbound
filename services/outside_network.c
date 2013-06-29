@@ -58,6 +58,7 @@
 #include "util/net_help.h"
 #include "util/random.h"
 #include "util/fptr_wlist.h"
+#include "dnstap/dnstap.h"
 #ifdef HAVE_OPENSSL_SSL_H
 #include <openssl/ssl.h>
 #endif
@@ -561,7 +562,7 @@ outside_network_create(struct comm_base *base, size_t bufsize,
 	struct ub_randstate* rnd, int use_caps_for_id, int* availports, 
 	int numavailports, size_t unwanted_threshold,
 	void (*unwanted_action)(void*), void* unwanted_param, int do_udp,
-	void* sslctx)
+	void* sslctx, struct dt_env* dtenv)
 {
 	struct outside_network* outnet = (struct outside_network*)
 		calloc(1, sizeof(struct outside_network));
@@ -576,6 +577,9 @@ outside_network_create(struct comm_base *base, size_t bufsize,
 	outnet->infra = infra;
 	outnet->rnd = rnd;
 	outnet->sslctx = sslctx;
+#ifdef USE_DNSTAP
+	outnet->dtenv = dtenv;
+#endif
 	outnet->svcd_overhead = 0;
 	outnet->want_to_quit = 0;
 	outnet->unwanted_threshold = unwanted_threshold;
