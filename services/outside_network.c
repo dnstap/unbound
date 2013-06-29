@@ -1165,6 +1165,13 @@ pending_tcp_query(struct serviced_query* sq, sldns_buffer* packet,
 			waiting_tcp_delete(w);
 			return NULL;
 		}
+#ifdef USE_DNSTAP
+		if(sq->outnet->dtenv &&
+		   (sq->outnet->dtenv->log_resolver_query_messages ||
+		    sq->outnet->dtenv->log_forwarder_query_messages))
+		dt_msg_send_outside_query(sq->outnet->dtenv, &sq->addr,
+		comm_tcp, sq->zone, sq->zonelen, &sq->last_sent_time, packet);
+#endif
 	} else {
 		/* queue up */
 		w->pkt = (uint8_t*)w + sizeof(struct waiting_tcp);
