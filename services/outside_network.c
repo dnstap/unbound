@@ -1592,6 +1592,14 @@ serviced_tcp_callback(struct comm_point* c, void* arg, int error,
 	if(error==NETEVENT_NOERROR)
 		infra_update_tcp_works(sq->outnet->infra, &sq->addr,
 			sq->addrlen, sq->zone, sq->zonelen);
+#ifdef USE_DNSTAP
+	if(sq->outnet->dtenv &&
+	   (sq->outnet->dtenv->log_resolver_response_messages ||
+	    sq->outnet->dtenv->log_forwarder_response_messages))
+		dt_msg_send_outside_response(sq->outnet->dtenv, &sq->addr,
+		c->type, sq->zone, sq->zonelen, sq->qbuf, sq->qbuflen,
+		&sq->last_sent_time, sq->outnet->now_tv, c->buffer);
+#endif
 	if(error==NETEVENT_NOERROR && sq->status == serviced_query_TCP_EDNS &&
 		(LDNS_RCODE_WIRE(sldns_buffer_begin(c->buffer)) == 
 		LDNS_RCODE_FORMERR || LDNS_RCODE_WIRE(sldns_buffer_begin(
