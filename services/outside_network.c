@@ -1709,6 +1709,14 @@ serviced_udp_callback(struct comm_point* c, void* arg, int error,
 		serviced_callbacks(sq, error, c, rep);
 		return 0;
 	}
+#ifdef USE_DNSTAP
+	if(outnet->dtenv &&
+	   (outnet->dtenv->log_resolver_response_messages ||
+	    outnet->dtenv->log_forwarder_response_messages))
+		dt_msg_send_outside_response(outnet->dtenv, &sq->addr, c->type,
+		sq->zone, sq->zonelen, sq->qbuf, sq->qbuflen,
+		&sq->last_sent_time, sq->outnet->now_tv, c->buffer);
+#endif
 	if(!fallback_tcp) {
 	    if( (sq->status == serviced_query_UDP_EDNS 
 	        ||sq->status == serviced_query_UDP_EDNS_FRAG)
