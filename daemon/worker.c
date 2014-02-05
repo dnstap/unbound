@@ -1051,6 +1051,14 @@ worker_create(struct daemon* daemon, int id, int* ports, int n)
 		return NULL;
 	}
 	seed = 0;
+#ifdef USE_DNSTAP
+	if (daemon->cfg->dnstap) {
+		log_assert(daemon->dtenv != NULL);
+		memcpy(&worker->dtenv, daemon->dtenv, sizeof(struct dt_env));
+		if(!dt_init(&worker->dtenv))
+			fatal_exit("dt_init failed");
+	}
+#endif
 	return worker;
 }
 
