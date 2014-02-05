@@ -534,6 +534,9 @@ daemon_cleanup(struct daemon* daemon)
 	free(daemon->workers);
 	daemon->workers = NULL;
 	daemon->num = 0;
+#ifdef USE_DNSTAP
+	dt_delete(daemon->dtenv);
+#endif
 	daemon->cfg = NULL;
 }
 
