@@ -996,6 +996,15 @@ randomize_and_send_udp(struct pending* pend, ldns_buffer* packet, int timeout)
 	tv.tv_usec = (timeout%1000)*1000;
 #endif
 	comm_timer_set(pend->timer, &tv);
+
+#ifdef USE_DNSTAP
+	if(outnet->dtenv &&
+	   (outnet->dtenv->log_resolver_query_messages ||
+	    outnet->dtenv->log_forwarder_query_messages))
+		dt_msg_send_outside_query(outnet->dtenv, &pend->addr, comm_udp,
+		pend->sq->zone, pend->sq->zonelen, &pend->sq->last_sent_time,
+		packet);
+#endif
 	return 1;
 }
 
