@@ -43,6 +43,49 @@
 #include <fstrm.h>
 
 #include "dnstap/dnstap.h"
+#include "dnstap/dnstap.pb-c.h"
+
+struct dt_msg {
+	void		*buf;
+	size_t		len_buf;
+	Dnstap__Dnstap	d;
+	Dnstap__Message	m;
+};
+
+static void
+dt_send(const struct dt_env *env, void *buf, size_t len_buf)
+{
+	fstrm_res res;
+	if (!buf)
+		return;
+	res = fstrm_io_submit(env->fio, env->fq, buf, len_buf,
+			      fstrm_free_wrapper, NULL);
+	if (res != FSTRM_RES_SUCCESS)
+		free(buf);
+}
+
+static void
+dt_msg_init(const struct dt_env *env,
+	    struct dt_msg *dm,
+	    Dnstap__Message__Type mtype)
+{
+	memset(dm, 0, sizeof(*dm));
+	dm->d.base.descriptor = &dnstap__dnstap__descriptor;
+	dm->m.base.descriptor = &dnstap__message__descriptor;
+	dm->d.type = DNSTAP__DNSTAP__TYPE__MESSAGE;
+	dm->d.message = &dm->m;
+	dm->m.type = mtype;
+	if (env->identity != NULL) {
+		dm->d.identity.data = (uint8_t *) env->identity;
+		dm->d.identity.len = (size_t) env->len_identity;
+		dm->d.has_identity = 1;
+	}
+	if (env->version != NULL) {
+		dm->d.version.data = (uint8_t *) env->version;
+		dm->d.version.len = (size_t) env->len_version;
+		dm->d.has_version = 1;
+	}
+}
 
 struct dt_env *
 dt_create(const char *socket_path, unsigned num_workers)
