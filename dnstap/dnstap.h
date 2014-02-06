@@ -39,6 +39,42 @@
 
 #ifdef USE_DNSTAP
 
+struct fstrm_io;
+struct fstrm_queue;
+
+struct dt_env {
+	/** dnstap I/O socket */
+	struct fstrm_io *fio;
+
+	/** dnstap I/O queue */
+	struct fstrm_queue *fq;
+
+	/** dnstap "identity" field, NULL if disabled */
+	char *identity;
+
+	/** dnstap "version" field, NULL if disabled */
+	char *version;
+
+	/** length of "identity" field */
+	unsigned len_identity;
+
+	/** length of "version" field */
+	unsigned len_version;
+
+	/** whether to log Message/RESOLVER_QUERY */
+	unsigned log_resolver_query_messages : 1;
+	/** whether to log Message/RESOLVER_RESPONSE */
+	unsigned log_resolver_response_messages : 1;
+	/** whether to log Message/CLIENT_QUERY */
+	unsigned log_client_query_messages : 1;
+	/** whether to log Message/CLIENT_RESPONSE */
+	unsigned log_client_response_messages : 1;
+	/** whether to log Message/FORWARDER_QUERY */
+	unsigned log_forwarder_query_messages : 1;
+	/** whether to log Message/FORWARDER_RESPONSE */
+	unsigned log_forwarder_response_messages : 1;
+};
+
 #endif /* USE_DNSTAP */
 
 #endif /* UNBOUND_DNSTAP_H */
