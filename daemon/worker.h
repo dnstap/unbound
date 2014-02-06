@@ -50,6 +50,7 @@
 #include "util/data/msgparse.h"
 #include "daemon/stats.h"
 #include "util/module.h"
+#include "dnstap/dnstap.h"
 struct listen_dnsport;
 struct outside_network;
 struct config_file;
@@ -115,6 +116,11 @@ struct worker {
 
 	/** module environment passed to modules, changed for this thread */
 	struct module_env env;
+
+#ifdef USE_DNSTAP
+	/** dnstap environment, changed for this thread */
+	struct dt_env dtenv;
+#endif
 };
 
 /**
