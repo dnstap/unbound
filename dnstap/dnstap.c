@@ -37,6 +37,7 @@
 #ifdef USE_DNSTAP
 
 #include "config.h"
+#include <sys/time.h>
 #include <ldns/ldns.h>
 #include "util/config_file.h"
 #include "util/netevent.h"
@@ -320,6 +321,38 @@ dt_msg_fill_net(struct dt_msg *dm,
 		dm->m.socket_protocol = DNSTAP__SOCKET_PROTOCOL__TCP;
 		dm->m.has_socket_protocol = 1;
 	}
+}
+
+void
+dt_msg_send_client_query(struct dt_env *env,
+			 struct sockaddr_storage *qsock,
+			 enum comm_point_type cptype,
+			 ldns_buffer *qmsg)
+{
+	struct dt_msg dm;
+	struct timeval qtime;
+
+	gettimeofday(&qtime, NULL);
+
+	/* type */
+	dt_msg_init(env, &dm, DNSTAP__MESSAGE__TYPE__CLIENT_QUERY);
+
+	/* query_time */
+	dt_fill_timeval(&qtime,
+			&dm.m.query_time_sec, &dm.m.has_query_time_sec,
+			&dm.m.query_time_nsec, &dm.m.has_query_time_nsec);
+
+	/* query_message */
+	dt_fill_buffer(qmsg, &dm.m.query_message, &dm.m.has_query_message);
+
+	/* socket_family, socket_protocol, query_address, query_port */
+	log_assert(cptype == comm_udp || cptype == comm_tcp);
+	dt_msg_fill_net(&dm, qsock, cptype,
+			&dm.m.query_address, &dm.m.has_query_address,
+			&dm.m.query_port, &dm.m.has_query_port);
+
+	if (dt_pack(&dm.d, &dm.buf, &dm.len_buf))
+		dt_send(env, dm.buf, dm.len_buf);
 }
 
 #endif /* USE_DNSTAP */
