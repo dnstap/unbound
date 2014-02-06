@@ -781,6 +781,11 @@ worker_handle_request(struct comm_point* c, void* arg, int error,
 		verbose(VERB_ALGO, "handle request called with err=%d", error);
 		return 0;
 	}
+#ifdef USE_DNSTAP
+	if(worker->dtenv.log_client_query_messages)
+		dt_msg_send_client_query(&worker->dtenv, &repinfo->addr, c->type,
+			c->buffer);
+#endif
 	acl = acl_list_lookup(worker->daemon->acl, &repinfo->addr, 
 		repinfo->addrlen);
 	if((ret=deny_refuse_all(c, acl, worker, repinfo)) != -1)
