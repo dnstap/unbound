@@ -44,6 +44,7 @@
 #include "util/log.h"
 #include "util/net_help.h"
 #include "util/fptr_wlist.h"
+#include "dnstap/dnstap.h"
 #ifdef HAVE_OPENSSL_SSL_H
 #include <openssl/ssl.h>
 #endif
@@ -1903,7 +1904,19 @@ comm_point_send_reply(struct comm_reply *repinfo)
 		else
 			comm_point_send_udp_msg(repinfo->c, repinfo->c->buffer,
 			(struct sockaddr*)&repinfo->addr, repinfo->addrlen);
+#ifdef USE_DNSTAP
+		if(repinfo->c->dtenv != NULL &&
+		   repinfo->c->dtenv->log_client_response_messages)
+			dt_msg_send_client_response(repinfo->c->dtenv,
+			&repinfo->addr, repinfo->c->type, repinfo->c->buffer);
+#endif
 	} else {
+#ifdef USE_DNSTAP
+		if(repinfo->c->tcp_parent->dtenv != NULL &&
+		   repinfo->c->tcp_parent->dtenv->log_client_response_messages)
+			dt_msg_send_client_response(repinfo->c->tcp_parent->dtenv,
+			&repinfo->addr, repinfo->c->type, repinfo->c->buffer);
+#endif
 		comm_point_start_listening(repinfo->c, -1, TCP_QUERY_TIMEOUT);
 	}
 }
