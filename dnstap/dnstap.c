@@ -40,6 +40,7 @@
 #include <sys/time.h>
 #include "ldns/sbuffer.h"
 #include "util/config_file.h"
+#include "util/net_help.h"
 #include "util/netevent.h"
 #include "util/log.h"
 
@@ -382,6 +383,53 @@ dt_msg_send_client_response(struct dt_env *env,
 	dt_msg_fill_net(&dm, qsock, cptype,
 			&dm.m.query_address, &dm.m.has_query_address,
 			&dm.m.query_port, &dm.m.has_query_port);
+
+	if (dt_pack(&dm.d, &dm.buf, &dm.len_buf))
+		dt_send(env, dm.buf, dm.len_buf);
+}
+
+void
+dt_msg_send_outside_query(struct dt_env *env,
+			  struct sockaddr_storage *rsock,
+			  enum comm_point_type cptype,
+			  uint8_t *zone, size_t zone_len,
+			  const struct timeval *qtime,
+			  sldns_buffer *qmsg)
+{
+	struct dt_msg dm;
+	uint16_t qflags;
+
+	qflags = sldns_buffer_read_u16_at(qmsg, 2);
+
+	/* type */
+	if (qflags & BIT_RD) {
+		if (!env->log_forwarder_query_messages)
+			return;
+		dt_msg_init(env, &dm, DNSTAP__MESSAGE__TYPE__FORWARDER_QUERY);
+	} else {
+		if (!env->log_resolver_query_messages)
+			return;
+		dt_msg_init(env, &dm, DNSTAP__MESSAGE__TYPE__RESOLVER_QUERY);
+	}
+
+	/* query_zone */
+	dm.m.query_zone.data = zone;
+	dm.m.query_zone.len = zone_len;
+	dm.m.has_query_zone = 1;
+
+	/* query_time_sec, query_time_nsec */
+	dt_fill_timeval(qtime,
+			&dm.m.query_time_sec, &dm.m.has_query_time_sec,
+			&dm.m.query_time_nsec, &dm.m.has_query_time_nsec);
+
+	/* query_message */
+	dt_fill_buffer(qmsg, &dm.m.query_message, &dm.m.has_query_message);
+
+	/* socket_family, socket_protocol, response_address, response_port */
+	log_assert(cptype == comm_udp || cptype == comm_tcp);
+	dt_msg_fill_net(&dm, rsock, cptype,
+			&dm.m.response_address, &dm.m.has_response_address,
+			&dm.m.response_port, &dm.m.has_response_port);
 
 	if (dt_pack(&dm.d, &dm.buf, &dm.len_buf))
 		dt_send(env, dm.buf, dm.len_buf);
