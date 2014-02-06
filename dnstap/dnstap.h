@@ -160,6 +160,31 @@ dt_msg_send_outside_query(struct dt_env *env,
 			  const struct timeval *qtime,
 			  struct sldns_buffer *qmsg);
 
+/**
+ * Create and send a new dnstap "Message" event of type RESOLVER_RESPONSE or
+ * FORWARDER_RESPONSE. The type used is dependent on the value of the RD bit
+ * in the query header.
+ * @param env: dnstap environment object.
+ * @param rsock: address/port of server the response was received from.
+ * @param cptype: comm_udp or comm_tcp.
+ * @param zone: query zone.
+ * @param zone_len: length of zone.
+ * @param qbuf: outside_network's qbuf key.
+ * @param qbuf_len: length of outside_network's qbuf key.
+ * @param qtime: time query message was sent.
+ * @param rtime: time response message was sent.
+ * @param rmsg: response message.
+ */
+void
+dt_msg_send_outside_response(struct dt_env *env,
+			     struct sockaddr_storage *rsock,
+			     enum comm_point_type cptype,
+			     uint8_t *zone, size_t zone_len,
+			     uint8_t *qbuf, size_t qbuf_len,
+			     const struct timeval *qtime,
+			     const struct timeval *rtime,
+			     struct sldns_buffer *rmsg);
+
 #endif /* USE_DNSTAP */
 
 #endif /* UNBOUND_DNSTAP_H */
