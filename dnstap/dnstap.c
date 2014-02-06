@@ -435,4 +435,60 @@ dt_msg_send_outside_query(struct dt_env *env,
 		dt_send(env, dm.buf, dm.len_buf);
 }
 
+void
+dt_msg_send_outside_response(struct dt_env *env,
+			     struct sockaddr_storage *rsock,
+			     enum comm_point_type cptype,
+			     uint8_t *zone, size_t zone_len,
+			     uint8_t *qbuf, size_t qbuf_len,
+			     const struct timeval *qtime,
+			     const struct timeval *rtime,
+			     ldns_buffer *rmsg)
+{
+	struct dt_msg dm;
+	uint16_t qflags;
+
+	log_assert(qbuf_len >= sizeof(qflags));
+	memcpy(&qflags, qbuf, sizeof(qflags));
+	qflags = ntohs(qflags);
+
+	/* type */
+	if (qflags & BIT_RD) {
+		if (!env->log_forwarder_response_messages)
+			return;
+		dt_msg_init(env, &dm, DNSTAP__MESSAGE__TYPE__FORWARDER_RESPONSE);
+	} else {
+		if (!env->log_resolver_query_messages)
+			return;
+		dt_msg_init(env, &dm, DNSTAP__MESSAGE__TYPE__RESOLVER_RESPONSE);
+	}
+
+	/* query_zone */
+	dm.m.query_zone.data = zone;
+	dm.m.query_zone.len = zone_len;
+	dm.m.has_query_zone = 1;
+
+	/* query_time_sec, query_time_nsec */
+	dt_fill_timeval(qtime,
+			&dm.m.query_time_sec, &dm.m.has_query_time_sec,
+			&dm.m.query_time_nsec, &dm.m.has_query_time_nsec);
+
+	/* response_time_sec, response_time_nsec */
+	dt_fill_timeval(rtime,
+			&dm.m.response_time_sec, &dm.m.has_response_time_sec,
+			&dm.m.response_time_nsec, &dm.m.has_response_time_nsec);
+
+	/* response_message */
+	dt_fill_buffer(rmsg, &dm.m.response_message, &dm.m.has_response_message);
+
+	/* socket_family, socket_protocol, response_address, response_port */
+	log_assert(cptype == comm_udp || cptype == comm_tcp);
+	dt_msg_fill_net(&dm, rsock, cptype,
+			&dm.m.response_address, &dm.m.has_response_address,
+			&dm.m.response_port, &dm.m.has_response_port);
+
+	if (dt_pack(&dm.d, &dm.buf, &dm.len_buf))
+		dt_send(env, dm.buf, dm.len_buf);
+}
+
 #endif /* USE_DNSTAP */
