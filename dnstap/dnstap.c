@@ -355,4 +355,36 @@ dt_msg_send_client_query(struct dt_env *env,
 		dt_send(env, dm.buf, dm.len_buf);
 }
 
+void
+dt_msg_send_client_response(struct dt_env *env,
+			    struct sockaddr_storage *qsock,
+			    enum comm_point_type cptype,
+			    sldns_buffer *rmsg)
+{
+	struct dt_msg dm;
+	struct timeval rtime;
+
+	gettimeofday(&rtime, NULL);
+
+	/* type */
+	dt_msg_init(env, &dm, DNSTAP__MESSAGE__TYPE__CLIENT_RESPONSE);
+
+	/* response_time */
+	dt_fill_timeval(&rtime,
+			&dm.m.response_time_sec, &dm.m.has_response_time_sec,
+			&dm.m.response_time_nsec, &dm.m.has_response_time_nsec);
+
+	/* response_message */
+	dt_fill_buffer(rmsg, &dm.m.response_message, &dm.m.has_response_message);
+
+	/* socket_family, socket_protocol, query_address, query_port */
+	log_assert(cptype == comm_udp || cptype == comm_tcp);
+	dt_msg_fill_net(&dm, qsock, cptype,
+			&dm.m.query_address, &dm.m.has_query_address,
+			&dm.m.query_port, &dm.m.has_query_port);
+
+	if (dt_pack(&dm.d, &dm.buf, &dm.len_buf))
+		dt_send(env, dm.buf, dm.len_buf);
+}
+
 #endif /* USE_DNSTAP */
