@@ -37,7 +37,9 @@
 #ifdef USE_DNSTAP
 
 #include "config.h"
+#include <ldns/ldns.h>
 #include "util/config_file.h"
+#include "util/netevent.h"
 #include "util/log.h"
 
 #include <fstrm.h>
@@ -222,6 +224,78 @@ dt_delete(struct dt_env *env)
 	free(env->identity);
 	free(env->version);
 	free(env);
+}
+
+static void
+dt_fill_timeval(const struct timeval *tv,
+		uint64_t *time_sec, protobuf_c_boolean *has_time_sec,
+		uint32_t *time_nsec, protobuf_c_boolean *has_time_nsec)
+{
+	*time_sec = tv->tv_sec;
+	*time_nsec = tv->tv_usec * 1000;
+	*has_time_sec = 1;
+	*has_time_nsec = 1;
+}
+
+static void
+dt_fill_buffer(ldns_buffer *b, ProtobufCBinaryData *p, protobuf_c_boolean *has)
+{
+	log_assert(b != NULL);
+	p->len = ldns_buffer_limit(b);
+	p->data = ldns_buffer_begin(b);
+	*has = 1;
+}
+
+static void
+dt_msg_fill_net(struct dt_msg *dm,
+		struct sockaddr_storage *ss,
+		enum comm_point_type cptype,
+		ProtobufCBinaryData *addr, protobuf_c_boolean *has_addr,
+		uint32_t *port, protobuf_c_boolean *has_port)
+{
+	log_assert(ss->ss_family == AF_INET6 || ss->ss_family == AF_INET);
+	if (ss->ss_family == AF_INET6) {
+		struct sockaddr_in6 *s = (struct sockaddr_in6 *) ss;
+
+		/* socket_family */
+		dm->m.socket_family = DNSTAP__SOCKET_FAMILY__INET6;
+		dm->m.has_socket_family = 1;
+
+		/* addr: query_address or response_address */
+		addr->data = s->sin6_addr.s6_addr;
+		addr->len = 16; /* IPv6 */
+		*has_addr = 1;
+
+		/* port: query_port or response_port */
+		*port = ntohs(s->sin6_port);
+		*has_port = 1;
+	} else if (ss->ss_family == AF_INET) {
+		struct sockaddr_in *s = (struct sockaddr_in *) ss;
+
+		/* socket_family */
+		dm->m.socket_family = DNSTAP__SOCKET_FAMILY__INET;
+		dm->m.has_socket_family = 1;
+
+		/* addr: query_address or response_address */
+		addr->data = (uint8_t *) &s->sin_addr.s_addr;
+		addr->len = 4; /* IPv4 */
+		*has_addr = 1;
+
+		/* port: query_port or response_port */
+		*port = ntohs(s->sin_port);
+		*has_port = 1;
+	}
+
+	log_assert(cptype == comm_udp || cptype == comm_tcp);
+	if (cptype == comm_udp) {
+		/* socket_protocol */
+		dm->m.socket_protocol = DNSTAP__SOCKET_PROTOCOL__UDP;
+		dm->m.has_socket_protocol = 1;
+	} else if (cptype == comm_tcp) {
+		/* socket_protocol */
+		dm->m.socket_protocol = DNSTAP__SOCKET_PROTOCOL__TCP;
+		dm->m.has_socket_protocol = 1;
+	}
 }
 
 #endif /* USE_DNSTAP */
