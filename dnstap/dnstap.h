@@ -139,6 +139,26 @@ dt_msg_send_client_response(struct dt_env *env,
 			    enum comm_point_type cptype,
 			    ldns_buffer *rmsg);
 
+/**
+ * Create and send a new dnstap "Message" event of type RESOLVER_QUERY or
+ * FORWARDER_QUERY. The type used is dependent on the value of the RD bit
+ * in the query header.
+ * @param env: dnstap environment object.
+ * @param rsock: address/port of server the query is being sent to.
+ * @param cptype: comm_udp or comm_tcp.
+ * @param zone: query zone.
+ * @param zone_len: length of zone.
+ * @param qtime: time query message was sent.
+ * @param qmsg: query message.
+ */
+void
+dt_msg_send_outside_query(struct dt_env *env,
+			  struct sockaddr_storage *rsock,
+			  enum comm_point_type cptype,
+			  uint8_t *zone, size_t zone_len,
+			  const struct timeval *qtime,
+			  ldns_buffer *qmsg);
+
 #endif /* USE_DNSTAP */
 
 #endif /* UNBOUND_DNSTAP_H */
