@@ -126,6 +126,19 @@ dt_msg_send_client_query(struct dt_env *env,
 			 enum comm_point_type cptype,
 			 ldns_buffer *qmsg);
 
+/**
+ * Create and send a new dnstap "Message" event of type CLIENT_RESPONSE.
+ * @param env: dnstap environment object.
+ * @param qsock: address/port of client.
+ * @param cptype: comm_udp or comm_tcp.
+ * @param rmsg: response message.
+ */
+void
+dt_msg_send_client_response(struct dt_env *env,
+			    struct sockaddr_storage *qsock,
+			    enum comm_point_type cptype,
+			    ldns_buffer *rmsg);
+
 #endif /* USE_DNSTAP */
 
 #endif /* UNBOUND_DNSTAP_H */
