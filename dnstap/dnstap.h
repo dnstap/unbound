@@ -39,6 +39,7 @@
 
 #ifdef USE_DNSTAP
 
+struct config_file;
 struct fstrm_io;
 struct fstrm_queue;
 
@@ -74,6 +75,43 @@ struct dt_env {
 	/** whether to log Message/FORWARDER_RESPONSE */
 	unsigned log_forwarder_response_messages : 1;
 };
+
+/**
+ * Create dnstap environment object. Afterwards, call dt_apply_cfg() to fill in
+ * the config variables and dt_init() to fill in the per-worker state. Each
+ * worker needs a copy of this object but with its own I/O queue (the fq field
+ * of the structure) to ensure lock-free access to its own per-worker circular
+ * queue.  Duplicate the environment object if more than one worker needs to
+ * share access to the dnstap I/O socket.
+ * @param socket_path: path to dnstap logging socket, must be non-NULL.
+ * @param num_workers: number of worker threads, must be > 0.
+ * @return dt_env object, NULL on failure.
+ */
+struct dt_env *
+dt_create(const char *socket_path, unsigned num_workers);
+
+/**
+ * Apply config settings.
+ * @param env: dnstap environment object.
+ * @param cfg: new config settings.
+ */
+void
+dt_apply_cfg(struct dt_env *env, struct config_file *cfg);
+
+/**
+ * Initialize per-worker state in dnstap environment object.
+ * @param env: dnstap environment object to initialize, created with dt_create().
+ * @return: true on success, false on failure.
+ */
+int
+dt_init(struct dt_env *env);
+
+/**
+ * Delete dnstap environment object. Closes dnstap I/O socket and deletes all
+ * per-worker I/O queues.
+ */
+void
+dt_delete(struct dt_env *env);
 
 #endif /* USE_DNSTAP */
 
