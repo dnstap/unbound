@@ -43,9 +43,12 @@
 #include "util/log.h"
 
 #include <fstrm.h>
+#include <protobuf-c/protobuf-c.h>
 
 #include "dnstap/dnstap.h"
 #include "dnstap/dnstap.pb-c.h"
+
+#define DNSTAP_INITIAL_BUF_SIZE		256
 
 struct dt_msg {
 	void		*buf;
@@ -53,6 +56,27 @@ struct dt_msg {
 	Dnstap__Dnstap	d;
 	Dnstap__Message	m;
 };
+
+static int
+dt_pack(const Dnstap__Dnstap *d, void **buf, size_t *sz)
+{
+	ProtobufCBufferSimple sbuf;
+
+	sbuf.base.append = protobuf_c_buffer_simple_append;
+	sbuf.len = 0;
+	sbuf.alloced = DNSTAP_INITIAL_BUF_SIZE;
+	sbuf.data = malloc(sbuf.alloced);
+	if (sbuf.data == NULL)
+		return 0;
+	sbuf.must_free_data = 1;
+
+	*sz = dnstap__dnstap__pack_to_buffer(d, (ProtobufCBuffer *) &sbuf);
+	if (sbuf.data == NULL)
+		return 0;
+	*buf = sbuf.data;
+
+	return 1;
+}
 
 static void
 dt_send(const struct dt_env *env, void *buf, size_t len_buf)
