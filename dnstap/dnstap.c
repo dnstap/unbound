@@ -50,6 +50,7 @@
 #include "dnstap/dnstap.h"
 #include "dnstap/dnstap.pb-c.h"
 
+#define DNSTAP_CONTENT_TYPE		"protobuf:dnstap.Dnstap"
 #define DNSTAP_INITIAL_BUF_SIZE		256
 
 struct dt_msg {
@@ -134,6 +135,9 @@ dt_create(const char *socket_path, unsigned num_workers)
 	fuwopt = fstrm_unix_writer_options_init();
 	fstrm_unix_writer_options_set_socket_path(fuwopt, socket_path);
 	fopt = fstrm_io_options_init();
+	fstrm_io_options_set_content_type(fopt,
+					  DNSTAP_CONTENT_TYPE,
+					  sizeof(DNSTAP_CONTENT_TYPE) - 1);
 	fstrm_io_options_set_num_queues(fopt, num_workers);
 	fstrm_io_options_set_writer(fopt, fstrm_unix_writer, fuwopt);
 	env->fio = fstrm_io_init(fopt, &fio_err);
