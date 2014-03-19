@@ -1002,8 +1002,7 @@ randomize_and_send_udp(struct pending* pend, ldns_buffer* packet, int timeout)
 	   (outnet->dtenv->log_resolver_query_messages ||
 	    outnet->dtenv->log_forwarder_query_messages))
 		dt_msg_send_outside_query(outnet->dtenv, &pend->addr, comm_udp,
-		pend->sq->zone, pend->sq->zonelen, &pend->sq->last_sent_time,
-		packet);
+		pend->sq->zone, pend->sq->zonelen, packet);
 #endif
 	return 1;
 }
@@ -1136,7 +1135,7 @@ pending_tcp_query(struct serviced_query* sq, ldns_buffer* packet,
 		   (sq->outnet->dtenv->log_resolver_query_messages ||
 		    sq->outnet->dtenv->log_forwarder_query_messages))
 		dt_msg_send_outside_query(sq->outnet->dtenv, &sq->addr,
-		comm_tcp, sq->zone, sq->zonelen, &sq->last_sent_time, packet);
+		comm_tcp, sq->zone, sq->zonelen, packet);
 #endif
 	} else {
 		/* queue up */
