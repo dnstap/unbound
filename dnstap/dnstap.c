@@ -397,12 +397,13 @@ dt_msg_send_outside_query(struct dt_env *env,
 			  struct sockaddr_storage *rsock,
 			  enum comm_point_type cptype,
 			  uint8_t *zone, size_t zone_len,
-			  const struct timeval *qtime,
 			  sldns_buffer *qmsg)
 {
 	struct dt_msg dm;
+	struct timeval qtime;
 	uint16_t qflags;
 
+	gettimeofday(&qtime, NULL);
 	qflags = sldns_buffer_read_u16_at(qmsg, 2);
 
 	/* type */
@@ -422,7 +423,7 @@ dt_msg_send_outside_query(struct dt_env *env,
 	dm.m.has_query_zone = 1;
 
 	/* query_time_sec, query_time_nsec */
-	dt_fill_timeval(qtime,
+	dt_fill_timeval(&qtime,
 			&dm.m.query_time_sec, &dm.m.has_query_time_sec,
 			&dm.m.query_time_nsec, &dm.m.has_query_time_nsec);
 
