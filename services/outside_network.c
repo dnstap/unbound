@@ -1116,12 +1116,11 @@ outnet_tcptimer(void* arg)
 	use_free_buffer(outnet);
 }
 
-struct waiting_tcp* 
-pending_tcp_query(struct outside_network* outnet, sldns_buffer* packet, 
-	struct sockaddr_storage* addr, socklen_t addrlen, int timeout,
-	comm_point_callback_t* callback, void* callback_arg, int ssl_upstream)
+struct waiting_tcp*
+pending_tcp_query(struct serviced_query* sq, sldns_buffer* packet,
+	int timeout, comm_point_callback_t* callback, void* callback_arg)
 {
-	struct pending_tcp* pend = outnet->tcp_free;
+	struct pending_tcp* pend = sq->outnet->tcp_free;
 	struct waiting_tcp* w;
 	struct timeval tv;
 	uint16_t id;
@@ -1131,20 +1130,20 @@ pending_tcp_query(struct outside_network* outnet, sldns_buffer* packet,
 	if(!w) {
 		return NULL;
 	}
-	if(!(w->timer = comm_timer_create(outnet->base, outnet_tcptimer, w))) {
+	if(!(w->timer = comm_timer_create(sq->outnet->base, outnet_tcptimer, w))) {
 		free(w);
 		return NULL;
 	}
 	w->pkt = NULL;
 	w->pkt_len = 0;
-	id = ((unsigned)ub_random(outnet->rnd)>>8) & 0xffff;
+	id = ((unsigned)ub_random(sq->outnet->rnd)>>8) & 0xffff;
 	LDNS_ID_SET(sldns_buffer_begin(packet), id);
-	memcpy(&w->addr, addr, addrlen);
-	w->addrlen = addrlen;
-	w->outnet = outnet;
+	memcpy(&w->addr, &sq->addr, sq->addrlen);
+	w->addrlen = sq->addrlen;
+	w->outnet = sq->outnet;
 	w->cb = callback;
 	w->cb_arg = callback_arg;
-	w->ssl_upstream = ssl_upstream;
+	w->ssl_upstream = sq->ssl_upstream;
 #ifndef S_SPLINT_S
 	tv.tv_sec = timeout;
 	tv.tv_usec = 0;
@@ -1163,10 +1162,10 @@ pending_tcp_query(struct outside_network* outnet, sldns_buffer* packet,
 		w->pkt_len = sldns_buffer_limit(packet);
 		memmove(w->pkt, sldns_buffer_begin(packet), w->pkt_len);
 		w->next_waiting = NULL;
-		if(outnet->tcp_wait_last)
-			outnet->tcp_wait_last->next_waiting = w;
-		else	outnet->tcp_wait_first = w;
-		outnet->tcp_wait_last = w;
+		if(sq->outnet->tcp_wait_last)
+			sq->outnet->tcp_wait_last->next_waiting = w;
+		else	sq->outnet->tcp_wait_first = w;
+		sq->outnet->tcp_wait_last = w;
 	}
 	return w;
 }
@@ -1642,9 +1641,8 @@ serviced_tcp_initiate(struct outside_network* outnet,
 		sq->status==serviced_query_TCP_EDNS?"EDNS":"");
 	serviced_encode(sq, buff, sq->status == serviced_query_TCP_EDNS);
 	sq->last_sent_time = *sq->outnet->now_tv;
-	sq->pending = pending_tcp_query(outnet, buff, &sq->addr,
-		sq->addrlen, TCP_AUTH_QUERY_TIMEOUT, serviced_tcp_callback, 
-		sq, sq->ssl_upstream);
+	sq->pending = pending_tcp_query(sq, buff, TCP_AUTH_QUERY_TIMEOUT,
+		serviced_tcp_callback, sq);
 	if(!sq->pending) {
 		/* delete from tree so that a retry by above layer does not
 		 * clash with this entry */
@@ -1668,9 +1666,8 @@ serviced_tcp_send(struct serviced_query* sq, sldns_buffer* buff)
 	else 	sq->status = serviced_query_TCP;
 	serviced_encode(sq, buff, sq->status == serviced_query_TCP_EDNS);
 	sq->last_sent_time = *sq->outnet->now_tv;
-	sq->pending = pending_tcp_query(sq->outnet, buff, &sq->addr,
-		sq->addrlen, TCP_AUTH_QUERY_TIMEOUT, serviced_tcp_callback, 
-		sq, sq->ssl_upstream);
+	sq->pending = pending_tcp_query(sq, buff, TCP_AUTH_QUERY_TIMEOUT,
+		serviced_tcp_callback, sq);
 	return sq->pending != NULL;
 }
 
