@@ -42,6 +42,7 @@
 struct config_file;
 struct fstrm_io;
 struct fstrm_queue;
+struct sldns_buffer;
 
 struct dt_env {
 	/** dnstap I/O socket */
@@ -112,6 +113,19 @@ dt_init(struct dt_env *env);
  */
 void
 dt_delete(struct dt_env *env);
+
+/**
+ * Create and send a new dnstap "Message" event of type CLIENT_QUERY.
+ * @param env: dnstap environment object.
+ * @param qsock: address/port of client.
+ * @param cptype: comm_udp or comm_tcp.
+ * @param qmsg: query message.
+ */
+void
+dt_msg_send_client_query(struct dt_env *env,
+			 struct sockaddr_storage *qsock,
+			 enum comm_point_type cptype,
+			 struct sldns_buffer *qmsg);
 
 #endif /* USE_DNSTAP */
 
