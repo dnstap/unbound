@@ -76,8 +76,7 @@
 #define OUTBOUND_UDP_RETRY 1
 
 /** initiate TCP transaction for serviced query */
-static void serviced_tcp_initiate(struct outside_network* outnet, 
-	struct serviced_query* sq, sldns_buffer* buff);
+static void serviced_tcp_initiate(struct serviced_query* sq, sldns_buffer* buff);
 /** with a fd available, randomize and send UDP */
 static int randomize_and_send_udp(struct pending* pend, sldns_buffer* packet,
 	int timeout);
@@ -1583,7 +1582,7 @@ serviced_tcp_callback(struct comm_point* c, void* arg, int error,
 		c->buffer)) == LDNS_RCODE_NOTIMPL) ) {
 		/* attempt to fallback to nonEDNS */
 		sq->status = serviced_query_TCP_EDNS_fallback;
-		serviced_tcp_initiate(sq->outnet, sq, c->buffer);
+		serviced_tcp_initiate(sq, c->buffer);
 		return 0;
 	} else if(error==NETEVENT_NOERROR && 
 		sq->status == serviced_query_TCP_EDNS_fallback &&
@@ -1635,8 +1634,7 @@ serviced_tcp_callback(struct comm_point* c, void* arg, int error,
 }
 
 static void
-serviced_tcp_initiate(struct outside_network* outnet, 
-	struct serviced_query* sq, sldns_buffer* buff)
+serviced_tcp_initiate(struct serviced_query* sq, sldns_buffer* buff)
 {
 	verbose(VERB_ALGO, "initiate TCP query %s", 
 		sq->status==serviced_query_TCP_EDNS?"EDNS":"");
@@ -1817,7 +1815,7 @@ serviced_udp_callback(struct comm_point* c, void* arg, int error,
 			/* if we have unfinished EDNS_fallback, start again */
 			sq->status = serviced_query_TCP_EDNS;
 		else	sq->status = serviced_query_TCP;
-		serviced_tcp_initiate(outnet, sq, c->buffer);
+		serviced_tcp_initiate(sq, c->buffer);
 		return 0;
 	}
 	/* yay! an answer */
