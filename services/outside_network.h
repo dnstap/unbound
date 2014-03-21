@@ -56,6 +56,7 @@ struct infra_cache;
 struct port_comm;
 struct port_if;
 struct sldns_buffer;
+struct serviced_query;
 struct dt_env;
 
 /**
@@ -216,6 +217,8 @@ struct pending {
 	void* cb_arg;
 	/** the outside network it is part of */
 	struct outside_network* outnet;
+	/** the corresponding serviced_query */
+	struct serviced_query* sq;
 
 	/*---- filled if udp pending is waiting -----*/
 	/** next in waiting list. */
