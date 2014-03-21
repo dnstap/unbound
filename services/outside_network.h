@@ -415,18 +415,15 @@ void outside_network_quit_prepare(struct outside_network* outnet);
 /**
  * Send UDP query, create pending answer.
  * Changes the ID for the query to be random and unique for that destination.
- * @param outnet: provides the event handling
+ * @param sq: serviced query.
  * @param packet: wireformat query to send to destination.
- * @param addr: address to send to.
- * @param addrlen: length of addr.
  * @param timeout: in milliseconds from now.
  * @param callback: function to call on error, timeout or reply.
  * @param callback_arg: user argument for callback function.
  * @return: NULL on error for malloc or socket. Else the pending query object.
  */
-struct pending* pending_udp_query(struct outside_network* outnet, 
-	struct sldns_buffer* packet, struct sockaddr_storage* addr, 
-	socklen_t addrlen, int timeout, comm_point_callback_t* callback, 
+struct pending* pending_udp_query(struct serviced_query* sq,
+	struct sldns_buffer* packet, int timeout, comm_point_callback_t* callback,
 	void* callback_arg);
 
 /**
